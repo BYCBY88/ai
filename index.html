@@ -1,126 +1,68 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>知识库AI问答</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: system-ui;
-    }
-    body {
-      max-width: 1200px;
-      margin: 40px auto;
-      padding: 0 20px;
-    }
-    h1 {
-      font-size: 42px;
-      margin-bottom: 12px;
-    }
-    .tip {
-      color: red;
-      font-size: 22px;
-      margin-bottom: 30px;
-    }
-    .input-row {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 30px;
-    }
-    #userInput {
-      flex: 1;
-      padding: 16px;
-      font-size: 20px;
-      border: 2px solid #000;
-      border-radius: 8px;
-    }
-    #submitBtn {
-      padding: 0 40px;
-      background: #0066ff;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 20px;
-      cursor: pointer;
-    }
-    #submitBtn:active {
-      background: #004fcc;
-    }
-    .answer-box {
-      min-height: 120px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 24px;
-      font-size: 20px;
-      line-height: 1.6;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知识库问答</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
+body{max-width:1100px;margin:40px auto;padding:0 16px}
+h1{font-size:28px;margin-bottom:24px}
+.input-wrap{display:flex;gap:10px;margin-bottom:20px}
+#question{flex:1;padding:14px;font-size:16px;border:1px solid #ccc;border-radius:6px;outline:none}
+#submit{padding:0 24px;background:#007aff;color:#fff;border:none;border-radius:6px;font-size:16px;cursor:pointer}
+#result{min-height:160px;border:1px solid #eee;padding:16px;border-radius:6px;white-space:pre-wrap;line-height:1.6}
+</style>
 </head>
 <body>
-  <h1>知识库AI问答</h1>
-  <div class="tip">口令正确，已解锁问答</div>
+<h1>AI知识库问答</h1>
+<div class="input-wrap">
+  <input id="question" placeholder="输入问题，回车发送">
+  <button id="submit">提交</button>
+</div>
+<div id="result"></div>
 
-  <div class="input-row">
-    <input id="userInput" placeholder="输入你的问题" value="露怎么样？">
-    <button id="submitBtn">提交提问</button>
-  </div>
+<script>
+const API_URL = "https://ai.byg88.biz/chat";
+// 和Worker后台环境变量CHAT_PASSWORD保持一致
+const ACCESS_PWD = "你自定义的口令";
 
-  <div class="answer-box" id="answerBox">AI知识库调用失败</div>
+const questionEl = document.getElementById("question");
+const submitBtn = document.getElementById("submit");
+const resultBox = document.getElementById("result");
 
-  <script>
-    const inputEl = document.getElementById('userInput');
-    const btnEl = document.getElementById('submitBtn');
-    const answerBox = document.getElementById('answerBox');
-    const API_URL = "https://ai.byg88.biz/chat";
-
-    // 新增：全局存储对话上下文，实现多轮问答
-    let chatHistory = [];
-
-    async function sendQuestion() {
-      const question = inputEl.value.trim();
-      if (!question) {
-        answerBox.innerText = "请输入问题";
-        return;
-      }
-      answerBox.innerText = "正在请求AI...";
-
-      // 将本轮提问存入上下文
-      chatHistory.push({ role: "user", content: question });
-
-      try {
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          // 每次上传完整对话历史，支持上下文
-          body: JSON.stringify({
-            messages: chatHistory
-          })
-        });
-
-        const data = await res.json();
-        if (data.success) {
-          // 将AI回答存入上下文，供下一轮追问使用
-          chatHistory.push({ role: "assistant", content: data.answer });
-          answerBox.innerText = data.answer;
-        } else {
-          answerBox.innerText = data.msg;
-          console.log("错误详情：", data.detail);
-        }
-      } catch (err) {
-        answerBox.innerText = "网络请求失败，请检查接口地址";
-        console.error(err);
-      }
-    }
-
-    btnEl.addEventListener('click', sendQuestion);
-    inputEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') sendQuestion();
+async function sendChat() {
+  const text = questionEl.value.trim();
+  if (!text) {
+    resultBox.innerText = "请输入问题";
+    return;
+  }
+  resultBox.innerText = "正在查询知识库...";
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Chat-Password": ACCESS_PWD
+      },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: text }]
+      })
     });
-  </script>
+    const data = await res.json();
+    if (data.success) {
+      resultBox.innerText = data.answer;
+    } else {
+      resultBox.innerText = "错误：" + data.msg;
+    }
+  } catch (e) {
+    resultBox.innerText = "网络请求失败，请稍后重试";
+    console.error(e);
+  }
+}
+
+submitBtn.addEventListener("click", sendChat);
+questionEl.addEventListener("keydown", e => e.key === "Enter" && sendChat());
+</script>
 </body>
 </html>
