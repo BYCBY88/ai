@@ -1,13 +1,13 @@
 <!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src https://ai.byg88.biz;">
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>知识库问答</title>
+<title>AI知识库问答</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
 body{max-width:1100px;margin:40px auto;padding:0 16px}
-/* 口令输入区域 */
 .pwd-box{
   padding:30px;
   border:1px solid #ddd;
@@ -35,28 +35,43 @@ body{max-width:1100px;margin:40px auto;padding:0 16px}
   font-size:16px;
   cursor:pointer;
 }
-/* 问答区域，初始隐藏 */
 .chat-box{
   display:none;
 }
-h1{font-size:28px;margin-bottom:24px}
+.top-bar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:20px;
+}
+#logout{
+  padding:6px 16px;
+  background:#ff4d4f;
+  color:#fff;
+  border:none;
+  border-radius:4px;
+  cursor:pointer;
+}
+h1{font-size:28px;margin-bottom:0}
 .input-wrap{display:flex;gap:10px;margin-bottom:20px}
 #question{flex:1;padding:14px;font-size:16px;border:1px solid #ccc;border-radius:6px;outline:none}
 #submit{padding:0 24px;background:#007aff;color:#fff;border:none;border-radius:6px;font-size:16px;cursor:pointer}
 #result{min-height:160px;border:1px solid #eee;padding:16px;border-radius:6px;white-space:pre-wrap;line-height:1.6}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
 </head>
 <body>
-<!-- 口令登录界面 -->
 <div class="pwd-box">
   <h3>请输入访问口令</h3>
   <input type="password" id="pwdInput" placeholder="输入访问密码">
   <button id="confirmPwd">确认进入</button>
 </div>
 
-<!-- 问答交互界面 -->
 <div class="chat-box">
-  <h1>AI知识库问答</h1>
+  <div class="top-bar">
+    <h1>AI知识库问答</h1>
+    <button id="logout">退出登录</button>
+  </div>
   <div class="input-wrap">
     <input id="question" placeholder="输入问题，回车发送">
     <button id="submit">提交</button>
@@ -66,30 +81,47 @@ h1{font-size:28px;margin-bottom:24px}
 
 <script>
 const API_URL = "https://ai.byg88.biz/chat";
-// 仅临时存放用户页面输入的口令，无固定明文密码
-let userInputPwd = "";
+const SALT = "RandomSalt_2026_AiChat";
+let userPwdHash = "";
+let timeoutTimer = null;
 
-// DOM元素绑定
 const pwdBox = document.querySelector(".pwd-box");
 const chatBox = document.querySelector(".chat-box");
 const pwdInput = document.getElementById("pwdInput");
 const confirmBtn = document.getElementById("confirmPwd");
+const logoutBtn = document.getElementById("logout");
 const questionEl = document.getElementById("question");
 const submitBtn = document.getElementById("submit");
 const resultBox = document.getElementById("result");
 
-// 口令输入确认，仅切换界面，不做本地密码比对
+function clearLoginState(){
+  userPwdHash = "";
+  if(timeoutTimer) clearTimeout(timeoutTimer);
+  chatBox.style.display = "none";
+  pwdBox.style.display = "block";
+  pwdInput.value = "";
+  resultBox.innerText = "";
+}
+
+function startAutoLogout(){
+  if(timeoutTimer) clearTimeout(timeoutTimer);
+  timeoutTimer = setTimeout(clearLoginState, 30 * 60 * 1000);
+}
+
 confirmBtn.onclick = function(){
-  userInputPwd = pwdInput.value.trim();
-  if(!userInputPwd){
+  const rawPwd = pwdInput.value.trim();
+  if(!rawPwd){
     alert("请输入口令");
     return;
   }
+  userPwdHash = CryptoJS.SHA256(rawPwd + SALT).toString();
   pwdBox.style.display = "none";
   chatBox.style.display = "block";
+  startAutoLogout();
 }
 
-// 问答提交接口请求
+logoutBtn.onclick = clearLoginState;
+
 async function sendChat() {
   const text = questionEl.value.trim();
   if (!text) {
@@ -102,7 +134,8 @@ async function sendChat() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Chat-Password": userInputPwd
+        "X-Chat-Pwd-Hash": userPwdHash,
+        "X-Timestamp": String(Date.now())
       },
       body: JSON.stringify({
         messages: [{ role: "user", content: text }]
@@ -111,23 +144,18 @@ async function sendChat() {
     const data = await res.json();
     if (data.success) {
       resultBox.innerText = data.answer;
+      startAutoLogout();
     } else {
       resultBox.innerText = "错误：" + data.msg;
-      // 口令错误重置页面，返回密码输入框
-      if(data.msg.includes("口令错误")){
-        chatBox.style.display = "none";
-        pwdBox.style.display = "block";
-        pwdInput.value = "";
-        userInputPwd = "";
+      if(data.msg.includes("口令错误") || data.msg.includes("重放") || data.msg.includes("频繁")){
+        clearLoginState();
       }
     }
   } catch (e) {
     resultBox.innerText = "网络请求失败，请稍后重试";
-    console.error(e);
   }
 }
 
-// 绑定点击、回车提交事件
 submitBtn.addEventListener("click", sendChat);
 questionEl.addEventListener("keydown", e => e.key === "Enter" && sendChat());
 </script>
