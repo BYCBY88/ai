@@ -7,8 +7,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
 body{max-width:1100px;margin:40px auto;padding:0 16px}
-
-/* 口令区域 */
+/* 口令输入区域 */
 .pwd-box{
   padding:30px;
   border:1px solid #ddd;
@@ -17,6 +16,7 @@ body{max-width:1100px;margin:40px auto;padding:0 16px}
 }
 .pwd-box h3{
   margin-bottom:16px;
+  font-size:24px;
 }
 #pwdInput{
   padding:12px 14px;
@@ -35,7 +35,6 @@ body{max-width:1100px;margin:40px auto;padding:0 16px}
   font-size:16px;
   cursor:pointer;
 }
-
 /* 问答区域，初始隐藏 */
 .chat-box{
   display:none;
@@ -48,14 +47,14 @@ h1{font-size:28px;margin-bottom:24px}
 </style>
 </head>
 <body>
-<!-- 第一步：口令输入框 -->
+<!-- 口令登录界面 -->
 <div class="pwd-box">
   <h3>请输入访问口令</h3>
   <input type="password" id="pwdInput" placeholder="输入访问密码">
   <button id="confirmPwd">确认进入</button>
 </div>
 
-<!-- 第二步：问答界面，密码正确才显示 -->
+<!-- 问答交互界面 -->
 <div class="chat-box">
   <h1>AI知识库问答</h1>
   <div class="input-wrap">
@@ -67,10 +66,10 @@ h1{font-size:28px;margin-bottom:24px}
 
 <script>
 const API_URL = "https://ai.byg88.biz/chat";
-// 自定义你的访问口令
-const CORRECT_PWD = "123456";
+// 仅临时存放用户页面输入的口令，无固定明文密码
+let userInputPwd = "";
 
-// DOM元素
+// DOM元素绑定
 const pwdBox = document.querySelector(".pwd-box");
 const chatBox = document.querySelector(".chat-box");
 const pwdInput = document.getElementById("pwdInput");
@@ -79,21 +78,18 @@ const questionEl = document.getElementById("question");
 const submitBtn = document.getElementById("submit");
 const resultBox = document.getElementById("result");
 
-// 口令验证逻辑
+// 口令输入确认，仅切换界面，不做本地密码比对
 confirmBtn.onclick = function(){
-  const inputVal = pwdInput.value.trim();
-  if(inputVal === CORRECT_PWD){
-    // 密码正确，隐藏密码框，显示问答区
-    pwdBox.style.display = "none";
-    chatBox.style.display = "block";
-  }else{
-    alert("口令错误，请重新输入");
-    pwdInput.value = "";
-    pwdInput.focus();
+  userInputPwd = pwdInput.value.trim();
+  if(!userInputPwd){
+    alert("请输入口令");
+    return;
   }
+  pwdBox.style.display = "none";
+  chatBox.style.display = "block";
 }
 
-// 问答提交逻辑
+// 问答提交接口请求
 async function sendChat() {
   const text = questionEl.value.trim();
   if (!text) {
@@ -105,7 +101,8 @@ async function sendChat() {
     const res = await fetch(API_URL, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-Chat-Password": userInputPwd
       },
       body: JSON.stringify({
         messages: [{ role: "user", content: text }]
@@ -116,6 +113,13 @@ async function sendChat() {
       resultBox.innerText = data.answer;
     } else {
       resultBox.innerText = "错误：" + data.msg;
+      // 口令错误重置页面，返回密码输入框
+      if(data.msg.includes("口令错误")){
+        chatBox.style.display = "none";
+        pwdBox.style.display = "block";
+        pwdInput.value = "";
+        userInputPwd = "";
+      }
     }
   } catch (e) {
     resultBox.innerText = "网络请求失败，请稍后重试";
@@ -123,6 +127,7 @@ async function sendChat() {
   }
 }
 
+// 绑定点击、回车提交事件
 submitBtn.addEventListener("click", sendChat);
 questionEl.addEventListener("keydown", e => e.key === "Enter" && sendChat());
 </script>
