@@ -74,9 +74,10 @@
     const inputEl = document.getElementById('userInput');
     const btnEl = document.getElementById('submitBtn');
     const answerBox = document.getElementById('answerBox');
-
-    // 替换成你自己的 Workers 接口地址
     const API_URL = "https://ai.byg88.biz/chat";
+
+    // 新增：全局存储对话上下文，实现多轮问答
+    let chatHistory = [];
 
     async function sendQuestion() {
       const question = inputEl.value.trim();
@@ -86,21 +87,25 @@
       }
       answerBox.innerText = "正在请求AI...";
 
+      // 将本轮提问存入上下文
+      chatHistory.push({ role: "user", content: question });
+
       try {
         const res = await fetch(API_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
+          // 每次上传完整对话历史，支持上下文
           body: JSON.stringify({
-            messages: [
-              { role: "user", content: question }
-            ]
+            messages: chatHistory
           })
         });
 
         const data = await res.json();
         if (data.success) {
+          // 将AI回答存入上下文，供下一轮追问使用
+          chatHistory.push({ role: "assistant", content: data.answer });
           answerBox.innerText = data.answer;
         } else {
           answerBox.innerText = data.msg;
@@ -112,9 +117,7 @@
       }
     }
 
-    // 点击按钮提交
     btnEl.addEventListener('click', sendQuestion);
-    // 回车提交
     inputEl.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') sendQuestion();
     });
