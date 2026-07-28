@@ -7,6 +7,39 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
 body{max-width:1100px;margin:40px auto;padding:0 16px}
+
+/* 口令区域 */
+.pwd-box{
+  padding:30px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  margin-bottom:20px;
+}
+.pwd-box h3{
+  margin-bottom:16px;
+}
+#pwdInput{
+  padding:12px 14px;
+  width:320px;
+  font-size:16px;
+  border:1px solid #ccc;
+  border-radius:6px;
+}
+#confirmPwd{
+  padding:12px 24px;
+  margin-left:10px;
+  background:#007aff;
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  font-size:16px;
+  cursor:pointer;
+}
+
+/* 问答区域，初始隐藏 */
+.chat-box{
+  display:none;
+}
 h1{font-size:28px;margin-bottom:24px}
 .input-wrap{display:flex;gap:10px;margin-bottom:20px}
 #question{flex:1;padding:14px;font-size:16px;border:1px solid #ccc;border-radius:6px;outline:none}
@@ -15,22 +48,52 @@ h1{font-size:28px;margin-bottom:24px}
 </style>
 </head>
 <body>
-<h1>AI知识库问答</h1>
-<div class="input-wrap">
-  <input id="question" placeholder="输入问题，回车发送">
-  <button id="submit">提交</button>
+<!-- 第一步：口令输入框 -->
+<div class="pwd-box">
+  <h3>请输入访问口令</h3>
+  <input type="password" id="pwdInput" placeholder="输入访问密码">
+  <button id="confirmPwd">确认进入</button>
 </div>
-<div id="result"></div>
+
+<!-- 第二步：问答界面，密码正确才显示 -->
+<div class="chat-box">
+  <h1>AI知识库问答</h1>
+  <div class="input-wrap">
+    <input id="question" placeholder="输入问题，回车发送">
+    <button id="submit">提交</button>
+  </div>
+  <div id="result"></div>
+</div>
 
 <script>
 const API_URL = "https://ai.byg88.biz/chat";
-// 和Worker后台环境变量CHAT_PASSWORD保持一致
-const ACCESS_PWD = "你自定义的口令";
+// 自定义你的访问口令
+const CORRECT_PWD = "123456";
 
+// DOM元素
+const pwdBox = document.querySelector(".pwd-box");
+const chatBox = document.querySelector(".chat-box");
+const pwdInput = document.getElementById("pwdInput");
+const confirmBtn = document.getElementById("confirmPwd");
 const questionEl = document.getElementById("question");
 const submitBtn = document.getElementById("submit");
 const resultBox = document.getElementById("result");
 
+// 口令验证逻辑
+confirmBtn.onclick = function(){
+  const inputVal = pwdInput.value.trim();
+  if(inputVal === CORRECT_PWD){
+    // 密码正确，隐藏密码框，显示问答区
+    pwdBox.style.display = "none";
+    chatBox.style.display = "block";
+  }else{
+    alert("口令错误，请重新输入");
+    pwdInput.value = "";
+    pwdInput.focus();
+  }
+}
+
+// 问答提交逻辑
 async function sendChat() {
   const text = questionEl.value.trim();
   if (!text) {
@@ -42,8 +105,7 @@ async function sendChat() {
     const res = await fetch(API_URL, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "X-Chat-Password": ACCESS_PWD
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         messages: [{ role: "user", content: text }]
