@@ -237,7 +237,14 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-
+    
+    .teacher-name .list-tid {
+      font-size:12px;
+      color:#888;
+      font-weight:normal;
+      margin-left:6px;
+    }
+    
     .teacher-count {
       font-size: 11px;
       color: #666;
@@ -339,13 +346,13 @@
     }
 
     .teacher-card h2 {
-      font-size: 18px;
+      font-size: 14px;
       font-weight: 700;
       margin: 0 0 2px 0;
     }
 
     .teacher-card .teacher-id {
-      font-size: 11px;
+      font-size: 14px;
       color: #999;
       margin: 1px 0 2px;
       display: inline-flex;
@@ -363,7 +370,7 @@
     }
 
     .teacher-card .teacher-id .copy-icon {
-      font-size: 9px;
+      font-size: 10px;
       opacity: 0.6;
     }
 
@@ -879,8 +886,8 @@
     </div>
 
     <div class="range-tabs">
-      <div class="range-tab" data-range="unmeasured">待验证</div>      
-      <div class="range-tab active" data-range="all">总榜</div>
+      <div class="range-tab active" data-range="unmeasured">待验证</div>      
+      <div class="range-tab" data-range="all">总榜</div>
       <div class="range-tab" data-range="4-">4及以下</div>
       <div class="range-tab" data-range="5">5</div>
       <div class="range-tab" data-range="6+">6及以上</div>
@@ -909,7 +916,7 @@
     <div class="teacher-card">
       <h2 id="detailName">-</h2>
       <div class="teacher-id" id="detailId" onclick="copyId()">
-        ID: <span>-</span> 📋
+        车牌: <span>-</span> 📋
       </div>
       <div class="total-count" id="detailCount">-</div>
       <button class="add-review-btn" onclick="showPasswordModal()">+ 添加实测评分</button>
@@ -1031,7 +1038,7 @@
     let currentTab = 'admin';
     let currentReviewIndex = 0;
     let adminReviews = [];
-    let currentRange = 'all';
+    let currentRange = 'unmeasured';
 
     // 评分描述映射
     const scoreDescMap = {
@@ -1291,7 +1298,7 @@
             ${reviewBadge}
             <div class="rank-badge ${rankClass}">${rankIcon}</div>
             <div class="teacher-info">
-              <div class="teacher-name">${teacher.teacher_name}</div>
+              <div class="teacher-name">${teacher.teacher_name} <span class="list-tid">${teacher.teacher_id}</span></div>
               <div class="teacher-count">${teacher.review_count}条评价 · ${teacher.collection_count || 0}条采集 · ¥${teacher.price || '-'}</div>
               <div class="teacher-scores">
                 <span>颜值${teacher.display_score_look || teacher.score_look || '-'}</span>
